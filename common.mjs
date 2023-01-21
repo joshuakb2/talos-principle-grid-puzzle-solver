@@ -16,7 +16,7 @@ export const bgColors = [
     'bgBrightCyan',
 ];
 
-export const makeShape = (id, color, type) => ({ id, color, ...shapes[type] });
+export const makeShape = (color, type) => ({ color, ...shapes[type] });
 
 export const shapes = {
     line: {
@@ -167,7 +167,7 @@ export class Grid {
             r += '#'
             for (let x = 0; x < this.width; x++) {
                 const shape = this.at(x, y);
-                r += shape ? shape.id[shape.color] : ' ';
+                r += shape ? ' '[shape.color] : ' ';
             }
             r += '#\n';
         }

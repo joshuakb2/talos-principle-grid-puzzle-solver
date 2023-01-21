@@ -3,18 +3,17 @@ import { makeShape, bgColors, solve, Grid } from './common.mjs';
 
 function main() {
     let grid = new Grid(6, 6);
-    let shapes = Object.entries({
-        A: 'square',
-        B: 'square',
-        C: 'T',
-        D: 'T',
-        E: 'L',
-        F: 'L',
-        G: 'L2',
-        H: 'line',
-        I: 'S',
-        //J: 'square',
-    }).map(([ id, type ], i) => makeShape(id, bgColors[i % bgColors.length], type));
+    let shapes = [
+        'square',
+        'square',
+        'T',
+        'T',
+        'L',
+        'L',
+        'L2',
+        'line',
+        'S',
+    ].map((type, i) => makeShape(bgColors[i % bgColors.length], type));
 
     let solved = solve(grid, shapes);
 
