@@ -63,12 +63,16 @@ export class Grid {
         this.cells = Array.from({ length: w * h }, () => undefined);
     }
 
+    index(x, y) {
+        return x + this.width * y;
+    }
+
     set(x, y, value) {
-        this.cells[x * this.height + y] = value;
+        this.cells[this.index(x, y)] = value;
     }
 
     at(x, y) {
-        return this.cells[x * this.height + y];
+        return this.cells[this.index(x, y)];
     }
 
     fits(x, y, shape) {
@@ -91,6 +95,68 @@ export class Grid {
     remove(x, y, shape) {
         for (let [dx, dy] of shape.cells) {
             this.set(x + dx, y + dy, undefined);
+        }
+    }
+
+    hasImpossibleGaps() {
+        // Create a DAG of empty cell indexes that represent adjacent empty cells
+        let gapGraph = new Map();
+
+        for (let y = 0; y < this.height; y++) {
+            for (let x = 0; x < this.width; x++) {
+                let i = this.index(x, y);
+                if (this.cells[i]) continue;
+
+                gapGraph.set(i, i);
+
+                if (x > 0 && !this.cells[i - 1]) {
+                    let key = i - 1;
+                    while (true) {
+                        let next = gapGraph.get(key);
+                        if (key == next) break;
+                        key = next;
+                    }
+                    gapGraph.set(key, i);
+                }
+                if (y > 0 && !this.cells[i - this.width]) {
+                    let key = i - this.width;
+                    while (true) {
+                        let next = gapGraph.get(key);
+                        if (key == next) break;
+                        key = next;
+                    }
+                    gapGraph.set(key, i);
+                }
+            }
+        }
+
+        // Assign each empty cell an equivalence class ID
+        let classes = new Map();
+        
+        for (let i of gapGraph.keys()) {
+            assignClass(i);
+        }
+
+        // Count how many cells belong to each equivalence class (each contiguous gap)
+        let classSizes = new Map();
+
+        for (let cls of classes.values()) {
+            classSizes.set(cls, (classSizes.get(cls) ?? 0) + 1);
+        }
+
+        // If any of those gaps contains a number of cells that is not a multiple of 4,
+        // it will be impossible to fill it and we can deduce that there is no solution
+        // to the puzzle from this state.
+        return [ ...classSizes.values() ].some(n => n % 4 !== 0);
+
+        function assignClass(key) {
+            if (classes.has(key)) return classes.get(key);
+            
+            let next = gapGraph.get(key);
+            let cls = next == key ? key : assignClass(next);
+
+            classes.set(key, cls);
+            return cls;
         }
     }
 
@@ -122,7 +188,11 @@ export const solve = (grid, shapes) => {
             for (let x = 0; x < grid.width; x++) {
                 if (grid.fits(x, y, rotated)) {
                     grid.place(x, y, rotated);
-                    if (solve(grid, shapes)) return true;
+                    while (true) {
+                        if (grid.hasImpossibleGaps()) break;
+                        if (solve(grid, shapes)) return true;
+                        break;
+                    }
                     grid.remove(x, y, rotated);
                 }
             }
